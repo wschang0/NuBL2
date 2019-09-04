@@ -1,0 +1,29 @@
+NUBL2 0x0
+{
+    NuBL2.bin +0
+    {
+        NuBL2_startup.o(RESET, +First)
+        * (+RO)
+    }
+ 
+    RAM 0x20000000
+    {
+        * (+ZI, +RW)
+    }
+}
+
+NUBL2_INFO 0x3D00 
+{
+    FwInfo.bin +0
+    {
+        FwInfo.o
+    }
+}
+
+NUBL3x_INFO 0x3E00 0x200
+{
+    NuBL3x.bin +0
+    {
+        NuBL3xFwInfo.o
+    }
+}
