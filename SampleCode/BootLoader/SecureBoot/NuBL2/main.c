@@ -294,7 +294,7 @@ int main(void)
 
 #endif
 
-#if 1
+#if 0
     /* Verify NuBL33 identity and F/W integrity */
     memcpy((void *)&fwinfo, (void *)&g_NuBL33InfoStart, sizeof(FW_INFO_T));
     if(VerifyNuBL3x(&fwinfo, au32Pk1, au32Pk2) < 0)
@@ -310,9 +310,52 @@ int main(void)
 #endif
 
 
+#if 0
     printf("Press any key to boot TF-M\n");
     UART_WAIT_TX_EMPTY((UART_T *)DEBUG_PORT);
     getchar();
+#endif    
+
+#if 1 // Initial for SPI0 Flash
+
+    CLK->CLKSEL0 = (CLK->CLKSEL0 & ~CLK_CLKSEL0_SDH0SEL_Msk) | CLK_CLKSEL0_SDH0SEL_HCLK;
+
+    /* select multi-function pin */
+    /* CD: PB12(9), PD13(3) */
+    //SYS->GPB_MFPH = (SYS->GPB_MFPH & (~SYS_GPB_MFPH_PB12MFP_Msk)) | SD0_nCD_PB12;
+    SYS->GPD_MFPH = (SYS->GPD_MFPH & (~SYS_GPD_MFPH_PD13MFP_Msk)) | SD0_nCD_PD13;
+
+    /* CLK: PB1(3), PE6(3) */
+    //SYS->GPB_MFPL = (SYS->GPB_MFPL & (~SYS_GPB_MFPL_PB1MFP_Msk)) | SD0_CLK_PB1;
+    SYS->GPE_MFPL = (SYS->GPE_MFPL & (~SYS_GPE_MFPL_PE6MFP_Msk)) | SD0_CLK_PE6;
+
+    /* CMD: PB0(3), PE7(3) */
+    //SYS->GPB_MFPL = (SYS->GPB_MFPL & (~SYS_GPB_MFPL_PB0MFP_Msk)) | SD0_CMD_PB0;
+    SYS->GPE_MFPL = (SYS->GPE_MFPL & (~SYS_GPE_MFPL_PE7MFP_Msk)) | SD0_CMD_PE7;
+
+    /* D0: PB2(3), PE2(3) */
+    //SYS->GPB_MFPL = (SYS->GPB_MFPL & (~SYS_GPB_MFPL_PB2MFP_Msk)) | SD0_DAT0_PB2;
+    SYS->GPE_MFPL = (SYS->GPE_MFPL & (~SYS_GPE_MFPL_PE2MFP_Msk)) | SD0_DAT0_PE2;
+
+    /* D1: PB3(3), PE3(3) */
+    //SYS->GPB_MFPL = (SYS->GPB_MFPL & (~SYS_GPB_MFPL_PB3MFP_Msk)) | SD0_DAT1_PB3;
+    SYS->GPE_MFPL = (SYS->GPE_MFPL & (~SYS_GPE_MFPL_PE3MFP_Msk)) | SD0_DAT1_PE3;
+
+    /* D2: PB4(3), PE4(3) */
+    //SYS->GPB_MFPL = (SYS->GPB_MFPL & (~SYS_GPB_MFPL_PB4MFP_Msk)) | SD0_DAT2_PB4;
+    SYS->GPE_MFPL = (SYS->GPE_MFPL & (~SYS_GPE_MFPL_PE4MFP_Msk)) | SD0_DAT2_PE4;
+
+    /* D3: PB5(3)-, PE5(3) */
+    //SYS->GPB_MFPL = (SYS->GPB_MFPL & (~SYS_GPB_MFPL_PB5MFP_Msk)) | SD0_DAT3_PB5;
+    SYS->GPE_MFPL = (SYS->GPE_MFPL & (~SYS_GPE_MFPL_PE5MFP_Msk)) | SD0_DAT3_PE5;
+
+    /* Enable IP clock */
+    CLK->AHBCLK |= CLK_AHBCLK_SDH0CKEN_Msk; // SD Card driving clock.
+    
+    SCU_SET_PNSSET(SDH0_Attr);
+    NVIC->ITNS[2] |= BIT0 ; /* Int of SDHOST0_INT  */
+    
+#endif
 
     SCB->VTOR = u32NuBL32Base;
     func = (void(*)(void))M32(u32NuBL32Base + 4);
