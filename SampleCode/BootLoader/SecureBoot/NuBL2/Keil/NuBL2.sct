@@ -12,7 +12,7 @@ NUBL2 0x0
     }
 }
 
-NUBL2_INFO 0x3D00 
+NUBL2_INFO 0x7000 
 {
     FwInfo.bin +0
     {
@@ -20,7 +20,7 @@ NUBL2_INFO 0x3D00
     }
 }
 
-NUBL3x_INFO 0x3E00 0x200
+NUBL3x_INFO 0x7800 0x800
 {
     NuBL3x.bin +0
     {

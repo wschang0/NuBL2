@@ -21,8 +21,8 @@ const uint32_t g_InitialFWinfo[] =
     0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 
     /* metadata data - includes Mode selection, F/W region and Extend info */
-    0x00000001, 0x00000010, 0x00000000, 0x00000000,
-    0x00000000, 0x00000000, 0x00000004, 0x00000000,
+    0x00000001, 0x00000008, 0x00000000, 0x00000000,
+    0x0000000C, 0x00000000, 0x00000000, 0x00000000,
 
     /* FW hash - 32-bytes (256-bits) */
     0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,

@@ -16,14 +16,13 @@
 #define SET_SECURE_BOOT     (0) // Set 1 to support modify CFG0[5] MBS 0 for booting from Secure Bootloader 
 #define ENABLE_XOM0_REGION  (0) // Set 1 to configure VerifyNuBL3x.c code in XOM0 region, and cannot trace VerifyNuBL3x.c flow in ICE debug mode
 
-
+extern int32_t UpgradeProcess(void);
 extern uint32_t *g_NuBL32InfoStart;
 extern uint32_t *g_NuBL32InfoEnd;
 extern uint32_t *g_NuBL33InfoStart;
 extern uint32_t *g_NuBL33InfoEnd;
 
 extern const uint32_t g_InitialFWinfo[]; // A global variable to store NuBL2 FWINFO address, declared in FwInfo.c
-
 
 
 /*---------------------------------------------------------------------------------------------------------*/
@@ -160,163 +159,22 @@ void SYS_Init(void)
     /* Init System Clock                                                                                       */
     /*---------------------------------------------------------------------------------------------------------*/
     /* Enable HIRC clock */
-    CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk);
+    CLK_EnableXtalRC(CLK_PWRCTL_HIRC48EN_Msk);
 
     /* Waiting for HIRC clock ready */
-    CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
+    CLK_WaitClockReady(CLK_STATUS_HIRC48STB_Msk);
 
     /* Switch HCLK clock source to HIRC */
-    CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_HIRC, CLK_CLKDIV0_HCLK(1));
+    CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_HIRC48, CLK_CLKDIV0_HCLK(1));
 
-    /* Enable PLL */
-    CLK->PLLCTL = CLK_PLLCTL_128MHz_HIRC;
-
-    /* Waiting for PLL stable */
-    CLK_WaitClockReady(CLK_STATUS_PLLSTB_Msk);
-
-    /* Select HCLK clock source as PLL and HCLK source divider as 2 */
-    CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_PLL, CLK_CLKDIV0_HCLK(2));
-
-    /* Set SysTick source to HCLK/2*/
-    CLK_SetSysTickClockSrc(CLK_CLKSEL0_STCLKSEL_HCLK_DIV2);
+    CLK_EnableModuleClock(CRPT_MODULE);
 
     /* Enable UART module clock */
     CLK_EnableModuleClock(UART0_MODULE);
     CLK_SetModuleClock(UART0_MODULE, CLK_CLKSEL1_UART0SEL_HIRC, CLK_CLKDIV0_UART0(1));
 
-    /*---------------------------------------------------------------------------------------------------------*/
-    /* Init I/O Multi-function                                                                                 */
-    /*---------------------------------------------------------------------------------------------------------*/
-    /* Set multi-function pins for UART0 RXD and TXD */
-    SYS->GPB_MFPH = (SYS->GPB_MFPH & (~(UART0_RXD_PB12_Msk | UART0_TXD_PB13_Msk))) | UART0_RXD_PB12 | UART0_TXD_PB13;
-}
 
-void UART_Init(void)
-{
-    /*---------------------------------------------------------------------------------------------------------*/
-    /* Init UART                                                                                               */
-    /*---------------------------------------------------------------------------------------------------------*/
-    /* Reset UART module */
-    SYS_ResetModule(UART0_RST);
-
-    /* Configure UART and set UART Baudrate */
-    UART_Open((UART_T *)DEBUG_PORT, 115200);
-}
-
-void ETM_Init(void)
-{
-
-    SYS->GPE_MFPH = (SYS->GPE_MFPH & (~(TRACE_CLK_PE12_Msk | TRACE_DATA0_PE11_Msk | TRACE_DATA1_PE10_Msk | TRACE_DATA2_PE9_Msk | TRACE_DATA3_PE8_Msk))) |
-                    TRACE_CLK_PE12 | TRACE_DATA0_PE11 | TRACE_DATA1_PE10 | TRACE_DATA2_PE9 | TRACE_DATA3_PE8;
-
-}
-
-void SwapCpy(uint8_t *pu8Dest, uint8_t *pu8Src, int32_t nBytes)
-{
-    int32_t i;
-
-    for(i = 0; i < nBytes; i++)
-    {
-        pu8Dest[i] = pu8Src[nBytes - i - 1];
-    }
-}
-
-void(*func)(void);
-
-/*---------------------------------------------------------------------------------------------------------*/
-/*  MAIN function                                                                                          */
-/*---------------------------------------------------------------------------------------------------------*/
-int main(void)
-{
-    int32_t i;
-    uint32_t u32Tmp;
-    uint32_t u32Cfg0;
-    uint32_t au32Pk1[8], au32Pk2[8];
-    uint32_t au32PkHash[8];
-    FW_INFO_T fwinfo;
-
-    uint32_t u32NuBL32Base;
-
-    /* Unlock protected registers */
-    SYS_UnlockReg();
-    ETM_Init();
-
-    /* Init System, peripheral clock and multi-function I/O */
-    SYS_Init();
-
-    /* Init UART for printf */
-    UART_Init();
-
-    printf("=== NuBL2 Bootloader v1.0 ===\n");
-
-    /* Check Root of Trusted Function Status */
-    /* Enable FMC ISP function */
-    FMC_ENABLE_ISP();
-    u32Cfg0 = FMC_Read(FMC_USER_CONFIG_0);
-    FMC_Read_OTP(0, &au32PkHash[0], &au32PkHash[1]);
-    FMC_Read_OTP(1, &au32PkHash[2], &au32PkHash[3]);
-    FMC_Read_OTP(2, &au32PkHash[4], &au32PkHash[5]);
-    FMC_Read_OTP(3, &au32PkHash[6], &au32PkHash[7]);
-    u32Tmp = -1ul;
-    for(i = 0; i < 8; i++)
-    {
-        u32Tmp &= au32PkHash[i];
-        //printf("0x%08x\n", au32PkHash[i]);
-    }
-
-    printf("Root of Trusted Function ........ %s!\n", (((u32Cfg0 & BIT5) == 0) && (u32Tmp != 0xfffffffful)) ? "Enabled" : "Disabled");
-
-    /* Verify NuBL32 identity and F/W integrity */
-    SwapCpy((uint8_t *)&au32Pk1[0], (uint8_t *)&g_InitialFWinfo[0], sizeof(au32Pk1));
-    SwapCpy((uint8_t *)&au32Pk2[0], (uint8_t *)&g_InitialFWinfo[0] + 32, sizeof(au32Pk2));
-
-#if 1
-    /* It is necessary to copy FwInfo to SRAM before doing SHA256 calculation */
-    memcpy((void *)&fwinfo, (void *)&g_NuBL32InfoStart, sizeof(FW_INFO_T));
-    if(VerifyNuBL3x(&fwinfo, au32Pk1, au32Pk2) < 0)
-    {
-        printf("TF-M verify ..................... FAILED!\n");
-        goto lexit;
-    }
-    else
-    {
-        printf("TF-M verify ..................... PASSED!\n");
-        u32NuBL32Base = fwinfo.mData.au32FwRegion[0].u32Start;
-    }
-#else
-    u32NuBL32Base = 0x4000;
-    /* Check TF-M existed */
-    if(M8(u32NuBL32Base + 3) != 0x20)
-    {
-        printf("Failed to detect TF-M.\n");
-        goto lexit;
-    }
-
-#endif
-
-#if 0
-    /* Verify NuBL33 identity and F/W integrity */
-    memcpy((void *)&fwinfo, (void *)&g_NuBL33InfoStart, sizeof(FW_INFO_T));
-    if(VerifyNuBL3x(&fwinfo, au32Pk1, au32Pk2) < 0)
-    {
-        printf("Non-secure application verify ... FAILED!\n");
-        goto lexit;
-    }
-    else
-    {
-        printf("Non-secure application verify ... PASSED!\n");
-    }
-
-#endif
-
-
-#if 0
-    printf("Press any key to boot TF-M\n");
-    UART_WAIT_TX_EMPTY((UART_T *)DEBUG_PORT);
-    getchar();
-#endif    
-
-#if 1 // Initial for SPI0 Flash
+    // Initial for SPI0 for storage
 
     CLK->CLKSEL0 = (CLK->CLKSEL0 & ~CLK_CLKSEL0_SDH0SEL_Msk) | CLK_CLKSEL0_SDH0SEL_HCLK;
 
@@ -352,10 +210,139 @@ int main(void)
     /* Enable IP clock */
     CLK->AHBCLK |= CLK_AHBCLK_SDH0CKEN_Msk; // SD Card driving clock.
     
-    SCU_SET_PNSSET(SDH0_Attr);
-    NVIC->ITNS[2] |= BIT0 ; /* Int of SDHOST0_INT  */
+    /*---------------------------------------------------------------------------------------------------------*/
+    /* Init I/O Multi-function                                                                                 */
+    /*---------------------------------------------------------------------------------------------------------*/
+    /* Set multi-function pins for UART0 RXD and TXD */
+    SYS->GPB_MFPH = (SYS->GPB_MFPH & (~(UART0_RXD_PB12_Msk | UART0_TXD_PB13_Msk))) | UART0_RXD_PB12 | UART0_TXD_PB13;
+}
+
+void UART_Init(void)
+{
+    /*---------------------------------------------------------------------------------------------------------*/
+    /* Init UART                                                                                               */
+    /*---------------------------------------------------------------------------------------------------------*/
+    /* Reset UART module */
+    SYS_ResetModule(UART0_RST);
+
+    /* Configure UART and set UART Baudrate */
+    UART_Open((UART_T *)DEBUG_PORT, 115200);
+}
+
+void SwapCpy(uint8_t *pu8Dest, uint8_t *pu8Src, int32_t nBytes)
+{
+    int32_t i;
+
+    for(i = 0; i < nBytes; i++)
+    {
+        pu8Dest[i] = pu8Src[nBytes - i - 1];
+    }
+}
+
+void(*func)(void);
+
+extern int sd(void);
+
+/*---------------------------------------------------------------------------------------------------------*/
+/*  MAIN function                                                                                          */
+/*---------------------------------------------------------------------------------------------------------*/
+int main(void)
+{
+    int32_t i;
+    uint32_t u32Tmp;
+    uint32_t u32Cfg0;
+    uint32_t au32Pk1[8], au32Pk2[8];
+    uint32_t au32PkHash[8];
+    FW_INFO_T fwinfo;
+
+    uint32_t u32NuBL32Base;
+
+    /* Unlock protected registers */
+    SYS_UnlockReg();
+
+    /* Init System, peripheral clock and multi-function I/O */
+    SYS_Init();
+
+    /* Init UART for printf */
+    UART_Init();
+
+    printf("=== Nuvoton PSA Bootloader v1.0 ===\n");
+
+    /* Check Root of Trusted Function Status */
+    /* Enable FMC ISP function */
+    FMC_ENABLE_ISP();
+    u32Cfg0 = FMC_Read(FMC_USER_CONFIG_0);
+    FMC_Read_OTP(0, &au32PkHash[0], &au32PkHash[1]);
+    FMC_Read_OTP(1, &au32PkHash[2], &au32PkHash[3]);
+    FMC_Read_OTP(2, &au32PkHash[4], &au32PkHash[5]);
+    FMC_Read_OTP(3, &au32PkHash[6], &au32PkHash[7]);
+    u32Tmp = -1ul;
+    for(i = 0; i < 8; i++)
+    {
+        u32Tmp &= au32PkHash[i];
+        //printf("0x%08x\n", au32PkHash[i]);
+    }
+
+    printf("Root of Trusted Function ........ %s!\n", (((u32Cfg0 & BIT5) == 0) && (u32Tmp != 0xfffffffful)) ? "Enabled" : "Disabled");
+
+    /* Check firmware upgrade when PB0 == 0 after reset */
+    if(PB0 == 0)
+    {
+        printf("!!! Start Firmware Upgrade Procedure !!!\n");
+        UpgradeProcess();
+    }
     
+    
+    /* Verify NuBL32 identity and F/W integrity */
+    SwapCpy((uint8_t *)&au32Pk1[0], (uint8_t *)g_InitialFWinfo, sizeof(au32Pk1));
+    SwapCpy((uint8_t *)&au32Pk2[0], (uint8_t *)g_InitialFWinfo + 32, sizeof(au32Pk2));
+    
+#if 1
+    /* It is necessary to copy FwInfo to SRAM before doing SHA256 calculation */
+    memcpy((void *)&fwinfo, (void *)&g_NuBL32InfoStart, sizeof(FW_INFO_T));
+    if(VerifyNuBL3x(&fwinfo, au32Pk1, au32Pk2, NULL) < 0)
+    {
+        printf("TF-M verify ..................... FAILED!\n");
+        goto lexit;
+    }
+    else
+    {
+        printf("TF-M verify ..................... PASSED!\n");
+        u32NuBL32Base = fwinfo.mData.au32FwRegion[0].u32Start;
+    }
+#else
+    u32NuBL32Base = 0x8000;
+    /* Check TF-M existed */
+    if(M8(u32NuBL32Base + 3) != 0x20)
+    {
+        printf("Failed to detect TF-M.\n");
+        goto lexit;
+    }
+
 #endif
+
+#if 1
+    /* Verify NuBL33 identity and F/W integrity */
+    memcpy((void *)&fwinfo, (void *)&g_NuBL33InfoStart, sizeof(FW_INFO_T));
+    if(VerifyNuBL3x(&fwinfo, au32Pk1, au32Pk2, NULL) < 0)
+    {
+        printf("Non-secure application verify ... FAILED!\n");
+        goto lexit;
+    }
+    else
+    {
+        printf("Non-secure application verify ... PASSED!\n");
+    }
+
+#endif
+
+
+#if 0
+    printf("Press any key to boot TF-M\n");
+    UART_WAIT_TX_EMPTY((UART_T *)DEBUG_PORT);
+    getchar();
+#endif    
+
 
     SCB->VTOR = u32NuBL32Base;
     func = (void(*)(void))M32(u32NuBL32Base + 4);

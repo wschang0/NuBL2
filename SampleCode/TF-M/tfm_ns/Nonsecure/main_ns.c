@@ -43,13 +43,13 @@ int32_t NonSecure_LED_Off(uint32_t num)
  *----------------------------------------------------------------------------*/
 void LED_On(uint32_t us)
 {
-    printf("Nonsecure LED On\n");
+    printf("Nonsecure LED [ ON]   \r");
     LED_RED = 0;
 }
 
 void LED_Off(uint32_t us)
 {
-    printf("Nonsecure LED Off\n");
+    printf("Nonsecure LED [OFF]  \r");
     LED_RED = 1;
 }
 
@@ -93,10 +93,10 @@ int main(void)
 
     /* Generate Systick interrupt each 10 ms */
     SystemCoreClockUpdate();
-    //SysTick_Config(SystemCoreClock / 100);
+    SysTick_Config(SystemCoreClock / 100);
 
     
-    sd();
+    //sd();
     
     while(1);
 }

@@ -48,6 +48,6 @@ typedef struct
 } __attribute__((packed)) FW_INFO_T;
 
 
-int32_t VerifyNuBL3x(FW_INFO_T *pInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8]);
+int32_t VerifyNuBL3x(FW_INFO_T *pInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8], uint32_t au32HashExt[8]);
 
 /*** (C) COPYRIGHT 2018 Nuvoton Technology Corp. ***/

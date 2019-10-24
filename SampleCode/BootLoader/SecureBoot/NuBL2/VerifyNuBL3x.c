@@ -3,7 +3,7 @@
  * @version  V3.00
  * @brief    This source file is used to authenticate the NuBL32 and NuBL33.
  *
- * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
+ * @copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
 #include <stdio.h>
 #include <string.h>
@@ -11,7 +11,7 @@
 #include "partition_M2351.h"
 #include "NuBL2.h"
 
-#define printf(...)
+//#define printf(...)
 #define DBG_EN      (0)
 
 
@@ -28,6 +28,7 @@ static void BytesSwap(char *buf, int32_t len)
     }
 }
 
+/* Calculate SHA256 with the data in Flash. We cannot use DMA to read flash here */
 void Cal_SHA256_Flash(uint32_t u32Addr, uint32_t u32Bytes, uint32_t *pu32Digest)
 {
     volatile int32_t    i, addr, bytes, data;
@@ -79,21 +80,10 @@ void Cal_SHA256_Flash(uint32_t u32Addr, uint32_t u32Bytes, uint32_t *pu32Digest)
         }
     }
 
-#if (DBG_EN == 1) // enable for debug
-    printf("Cal_SHA256_Flash\n");
-    printf("    0x%08x\n", pu32Digest[0]);
-    printf("    0x%08x\n", pu32Digest[1]);
-    printf("    0x%08x\n", pu32Digest[2]);
-    printf("    0x%08x\n", pu32Digest[3]);
-    printf("    0x%08x\n", pu32Digest[4]);
-    printf("    0x%08x\n", pu32Digest[5]);
-    printf("    0x%08x\n", pu32Digest[6]);
-    printf("    0x%08x\n", pu32Digest[7]);
-#endif
 }
 
 
-
+/* This could be used to calcuate SHA256 with non-continue binary image */
 void Cal_SHA256_Flash2(uint32_t u32Addr, uint32_t u32Bytes, uint32_t u32Addr2, uint32_t u32Bytes2, uint32_t *pu32Digest)
 {
     volatile int32_t    i, addr, bytes, data;
@@ -150,21 +140,9 @@ void Cal_SHA256_Flash2(uint32_t u32Addr, uint32_t u32Bytes, uint32_t u32Addr2, u
             }
         }
     }
-
-#if (DBG_EN == 1) // enable for debug
-    printf("Cal_SHA256_Flash\n");
-    printf("    0x%08x\n", pu32Digest[0]);
-    printf("    0x%08x\n", pu32Digest[1]);
-    printf("    0x%08x\n", pu32Digest[2]);
-    printf("    0x%08x\n", pu32Digest[3]);
-    printf("    0x%08x\n", pu32Digest[4]);
-    printf("    0x%08x\n", pu32Digest[5]);
-    printf("    0x%08x\n", pu32Digest[6]);
-    printf("    0x%08x\n", pu32Digest[7]);
-#endif
 }
 
-
+/* It can use DMA to read SRAM data to calculate SHA256 here */
 void Cal_SHA256_SRAM(uint32_t u32Addr, uint32_t u32Bytes, uint32_t *pu32Digest)
 {
     /* Enable CRYPTO module clock */
@@ -188,17 +166,6 @@ void Cal_SHA256_SRAM(uint32_t u32Addr, uint32_t u32Bytes, uint32_t *pu32Digest)
 
     XSHA_Read(XCRPT, pu32Digest);
 
-#if (DBG_EN == 1) // enable for debug
-    printf("Cal_SHA256_SRAM\n");
-    printf("    0x%08x\n", pu32Digest[0]);
-    printf("    0x%08x\n", pu32Digest[1]);
-    printf("    0x%08x\n", pu32Digest[2]);
-    printf("    0x%08x\n", pu32Digest[3]);
-    printf("    0x%08x\n", pu32Digest[4]);
-    printf("    0x%08x\n", pu32Digest[5]);
-    printf("    0x%08x\n", pu32Digest[6]);
-    printf("    0x%08x\n", pu32Digest[7]);
-#endif
 }
 
 static uint32_t *SetAES256Key(uint32_t *key)
@@ -260,30 +227,9 @@ static int32_t IdentifyNuBL3xPubKey(uint32_t *pu32FwInfo, uint32_t u32InfoBase)
         printf("\n\tVerify public key hash FAIL.\n");
         return -1;
     }
-#if (DBG_EN == 1) // enable for debug
-    printf("key, encrypted\n");
-    printf("    0x%08x\n", PubKey.au32Key0[0]);
-    printf("    0x%08x\n", PubKey.au32Key0[1]);
-    printf("    0x%08x\n", PubKey.au32Key0[2]);
-    printf("    0x%08x\n", PubKey.au32Key0[3]);
-    printf("    0x%08x\n", PubKey.au32Key0[4]);
-    printf("    0x%08x\n", PubKey.au32Key0[5]);
-    printf("    0x%08x\n", PubKey.au32Key0[6]);
-    printf("    0x%08x\n", PubKey.au32Key0[7]);
-    printf("    0x%08x\n", PubKey.au32Key1[0]);
-    printf("    0x%08x\n", PubKey.au32Key1[1]);
-    printf("    0x%08x\n", PubKey.au32Key1[2]);
-    printf("    0x%08x\n", PubKey.au32Key1[3]);
-    printf("    0x%08x\n", PubKey.au32Key1[4]);
-    printf("    0x%08x\n", PubKey.au32Key1[5]);
-    printf("    0x%08x\n", PubKey.au32Key1[6]);
-    printf("    0x%08x\n", PubKey.au32Key1[7]);
-#endif
-
 
     /* Get NuBL3x F/W info */
     pFwInfo = (FW_INFO_T *)pu32FwInfo;
-
 
     /* Decrypted NuBL3x public key and verify with F/W info */
 
@@ -300,25 +246,7 @@ static int32_t IdentifyNuBL3xPubKey(uint32_t *pu32FwInfo, uint32_t u32InfoBase)
     XAES_Start(XCRPT, 0, CRYPTO_DMA_ONE_SHOT);
     while(AES_GET_INT_FLAG(CRPT) == 0) {}
     AES_CLR_INT_FLAG(CRPT);
-#if (DBG_EN == 1) // enable for debug
-    printf("key, decrypted\n");
-    printf("    0x%08x\n", PubKey.au32Key0[0]);
-    printf("    0x%08x\n", PubKey.au32Key0[1]);
-    printf("    0x%08x\n", PubKey.au32Key0[2]);
-    printf("    0x%08x\n", PubKey.au32Key0[3]);
-    printf("    0x%08x\n", PubKey.au32Key0[4]);
-    printf("    0x%08x\n", PubKey.au32Key0[5]);
-    printf("    0x%08x\n", PubKey.au32Key0[6]);
-    printf("    0x%08x\n", PubKey.au32Key0[7]);
-    printf("    0x%08x\n", PubKey.au32Key1[0]);
-    printf("    0x%08x\n", PubKey.au32Key1[1]);
-    printf("    0x%08x\n", PubKey.au32Key1[2]);
-    printf("    0x%08x\n", PubKey.au32Key1[3]);
-    printf("    0x%08x\n", PubKey.au32Key1[4]);
-    printf("    0x%08x\n", PubKey.au32Key1[5]);
-    printf("    0x%08x\n", PubKey.au32Key1[6]);
-    printf("    0x%08x\n", PubKey.au32Key1[7]);
-#endif
+
 
     if(memcmp((void *)&pFwInfo->pubkey.au32Key0[0], &PubKey, sizeof(ECC_PUBKEY_T)) != 0)
     {
@@ -329,7 +257,7 @@ static int32_t IdentifyNuBL3xPubKey(uint32_t *pu32FwInfo, uint32_t u32InfoBase)
     return 0;
 }
 
-int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8])
+int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8], uint32_t au32HashExt[8])
 {
     int32_t i;
     uint32_t u32InfoBase;
@@ -349,15 +277,9 @@ int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8
     XECC_Reg2Hex(64, tmp, m);
 
     /* Get Qx */
-    //memcpy((void*)tmp, (uint32_t *)pFwInfo->pubkey.au32Key0, sizeof(tmp));
-    //BytesSwap((char*)tmp,  sizeof(tmp));
-    //XECC_Reg2Hex(64, tmp, Qx);
     XECC_Reg2Hex(64, au32Pk1, Qx);
 
     /* Get Qy */
-    //memcpy((void*)tmp, (uint32_t *)pFwInfo->pubkey.au32Key1, sizeof(tmp));
-    //BytesSwap((char*)tmp,  sizeof(tmp));
-    //XECC_Reg2Hex(64, tmp, Qy);
     XECC_Reg2Hex(64, au32Pk2, Qy);
 
     /* Get R */
@@ -369,15 +291,6 @@ int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8
     memcpy((void*)tmp, (uint32_t *)pFwInfo->sign.au32S, sizeof(tmp));
     BytesSwap((char*)tmp,  sizeof(tmp));
     XECC_Reg2Hex(64, tmp, S);
-
-#if (DBG_EN == 1) // enable for debug
-    printf("Input:\n");
-    printf(" m\t%s\n", m);
-    printf(" Qx\t%s\n", Qx);
-    printf(" Qy\t%s\n", Qy);
-    printf(" R\t%s\n", R);
-    printf(" S\t%s\n", S);
-#endif
 
     ECC_ENABLE_INT(CRPT);
     if(XECC_VerifySignature(XCRPT, CURVE_P_256, m, Qx, Qy, R, S) < 0)
@@ -394,10 +307,19 @@ int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8
     /*---------------------------------------------------------------------------------------------------------*/
     /*  Verify NuBL3x F/W integrity                                                                            */
     /*---------------------------------------------------------------------------------------------------------*/
-    /* Calculate F/W hash */
-    u32Start = (uint32_t)pFwInfo->mData.au32FwRegion[0].u32Start;
-    u32Size  = (uint32_t)pFwInfo->mData.au32FwRegion[0].u32Size;
-    Cal_SHA256_Flash2(u32Start, u32Size, pFwInfo->mData.au32FwRegion[1].u32Start, pFwInfo->mData.au32FwRegion[1].u32Size, (uint32_t *)au32Hash);
+    
+    if(au32HashExt == NULL)
+    {
+        /* Calculate F/W hash */
+        u32Start = (uint32_t)pFwInfo->mData.au32FwRegion[0].u32Start;
+        u32Size  = (uint32_t)pFwInfo->mData.au32FwRegion[0].u32Size;
+        Cal_SHA256_Flash2(u32Start, u32Size, pFwInfo->mData.au32FwRegion[1].u32Start, pFwInfo->mData.au32FwRegion[1].u32Size, (uint32_t *)au32Hash);
+    }
+    else
+    {
+        memcpy(au32Hash, au32HashExt, sizeof(au32Hash));
+    }
+    
     if(memcmp((void*)&pFwInfo->au32FwHash[0], au32Hash, sizeof(au32Hash)) != 0)
     {
         uint8_t *p8;
@@ -420,8 +342,9 @@ int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8
     {
         printf("\nVerify F/W hash integrity PASS.\n\n");
     }
+    
 
     return 0UL;
 }
 
-/*** (C) COPYRIGHT 2018 Nuvoton Technology Corp. ***/
+

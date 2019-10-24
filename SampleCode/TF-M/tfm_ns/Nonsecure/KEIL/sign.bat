@@ -1,0 +1,1 @@
+FwSign .\Objects\tfm_ns.bin .\tfm_ns_i.bin 0x7F00
