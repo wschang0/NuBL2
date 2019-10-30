@@ -13,7 +13,7 @@
 
 //#define printf(...)
 #define DBG_EN      (0)
-
+extern void dump(uint32_t u32Addr, uint32_t u32Size);
 
 static void BytesSwap(char *buf, int32_t len)
 {
@@ -142,31 +142,6 @@ void Cal_SHA256_Flash2(uint32_t u32Addr, uint32_t u32Bytes, uint32_t u32Addr2, u
     }
 }
 
-/* It can use DMA to read SRAM data to calculate SHA256 here */
-void Cal_SHA256_SRAM(uint32_t u32Addr, uint32_t u32Bytes, uint32_t *pu32Digest)
-{
-    /* Enable CRYPTO module clock */
-    CLK_EnableModuleClock(CRPT_MODULE);
-
-    /* Reset CRYPTO module */
-    SYS_ResetModule(CRPT_MODULE);
-
-    SHA_ENABLE_INT(CRPT);
-
-    /*---------------------------------------
-     *  SHA-256
-     *---------------------------------------*/
-    XSHA_Open(XCRPT, SHA_MODE_SHA256, SHA_IN_OUT_SWAP, 0);
-
-    XSHA_SetDMATransfer(XCRPT, u32Addr, u32Bytes);
-
-    XSHA_Start(XCRPT, CRYPTO_DMA_ONE_SHOT);
-    while(SHA_GET_INT_FLAG(CRPT) == 0) {}
-    SHA_CLR_INT_FLAG(CRPT);
-
-    XSHA_Read(XCRPT, pu32Digest);
-
-}
 
 static uint32_t *SetAES256Key(uint32_t *key)
 {
@@ -221,7 +196,8 @@ static int32_t IdentifyNuBL3xPubKey(uint32_t *pu32FwInfo, uint32_t u32InfoBase)
         printf("\n\tInvalid F/W info base address.\n");
         return -1;
     }
-    Cal_SHA256_SRAM((uint32_t)&PubKey, sizeof(ECC_PUBKEY_T), (uint32_t *)au32Hash1);
+    Cal_SHA256_Flash((uint32_t)&PubKey, sizeof(ECC_PUBKEY_T), (uint32_t *)au32Hash1);
+    
     if(memcmp(au32Hash0, au32Hash1, sizeof(au32Hash0)) != 0)
     {
         printf("\n\tVerify public key hash FAIL.\n");
@@ -271,7 +247,10 @@ int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8
     /* Calculate message (NuBL3x F/W info hash) */
     u32Start = (uint32_t)pFwInfo;
     u32Size  = sizeof(FW_INFO_T) - sizeof(ECDSA_SIGN_T);
-    Cal_SHA256_SRAM(u32Start, u32Size, (uint32_t *)au32Hash);
+
+    Cal_SHA256_Flash(u32Start, u32Size, (uint32_t *)au32Hash);
+    
+    
     memcpy((void*)tmp, (uint32_t *)au32Hash, sizeof(tmp));
     BytesSwap((char*)tmp,  sizeof(tmp));
     XECC_Reg2Hex(64, tmp, m);
@@ -313,7 +292,15 @@ int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8
         /* Calculate F/W hash */
         u32Start = (uint32_t)pFwInfo->mData.au32FwRegion[0].u32Start;
         u32Size  = (uint32_t)pFwInfo->mData.au32FwRegion[0].u32Size;
-        Cal_SHA256_Flash2(u32Start, u32Size, pFwInfo->mData.au32FwRegion[1].u32Start, pFwInfo->mData.au32FwRegion[1].u32Size, (uint32_t *)au32Hash);
+        if(pFwInfo->mData.au32FwRegion[1].u32Size)
+        {
+            Cal_SHA256_Flash2(u32Start, u32Size, pFwInfo->mData.au32FwRegion[1].u32Start, pFwInfo->mData.au32FwRegion[1].u32Size, (uint32_t *)au32Hash);
+        }
+        else
+        {
+            Cal_SHA256_Flash(u32Start, u32Size, (uint32_t *)au32Hash);
+        }
+            
     }
     else
     {

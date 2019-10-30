@@ -413,6 +413,30 @@ lexit:
     return;
 }
 
+void dump(uint32_t u32Addr, uint32_t u32Size)
+{
+    int32_t i;
+    
+    printf("0x%08x:\n", u32Addr);
+    
+    for(i = 0;i<u32Size;i++)
+    {
+        if((i & 0xf) == 0)
+        {
+            if(i > 0)
+                printf("\n");
+            printf("[0x%08x] ", u32Addr + i);
+        }
+        
+        printf("%02x ", M8(u32Addr + i));
+    
+    }
+    
+    printf("\n");
+}
+
+
+
 /*
 fname: Secure image file name
 finfo: Secure image information block file name
@@ -492,7 +516,6 @@ int32_t FwUpdate(char *fname, char *finfo, int32_t NS)
         
         // Check Secure Count
         u32SecureCnt = M32((uint32_t)&g_NuBL32InfoStart+0x5c);
-        memcpy((void *)&fwinfo, (void *)&g_NuBL32InfoStart, sizeof(FW_INFO_T));
         if(fwinfo.mData.au32ExtInfo[1] < u32SecureCnt)
         {
             printf("Secure count check ............ FAILED!\n");
@@ -532,7 +555,7 @@ int32_t FwUpdate(char *fname, char *finfo, int32_t NS)
         FMC_ENABLE_AP_UPDATE();
         
         // Backup information block page (secure / non-secure use the same page)
-        memcpy(g_au8BuffPool, (void *)0x7800, 0x800);
+        memcpy(&g_au8BuffPool[0], (void *)0x7800, 0x800);
         if(NS)
         {
             // Update nonsecure information block
@@ -543,6 +566,8 @@ int32_t FwUpdate(char *fname, char *finfo, int32_t NS)
             // Update secure information block
             memcpy(&g_au8BuffPool[0], &fwinfo, sizeof(FW_INFO_T));
         }
+        
+        
         // Write new information block to flash
         FMC_Erase(0x7800);
         for(i=0;i<0x800;i+=4)
@@ -585,7 +610,7 @@ int32_t FwUpdate(char *fname, char *finfo, int32_t NS)
         }
         
         /* Update region 0 */
-        u32Addr = fwinfo.mData.au32FwRegion[0].u32Start;
+        u32Addr = fwinfo.mData.au32FwRegion[0].u32Start & 0x0ffffffful;
         while(u32Size > 0)
         {
             u32Cnt = u32Size;
@@ -666,7 +691,7 @@ int32_t FwUpdate(char *fname, char *finfo, int32_t NS)
             }
             
             /* Update region 0 */
-            u32Addr = fwinfo.mData.au32FwRegion[1].u32Start;
+            u32Addr = fwinfo.mData.au32FwRegion[1].u32Start & 0x0ffffffful;
             while(u32Size > 0)
             {
                 u32Cnt = u32Size;
