@@ -306,6 +306,12 @@ void Cal_SHA256_SD(char *filename, uint32_t au32Hash[8])
     
     printf("open file %s,  size = %d, buf size = %d\n", filename, bytes, BUFF_SIZE);
 
+    /* Reset CRYPTO module */
+    CRPT->HMAC_CTL = 0;
+    SYS->IPRST0 |= SYS_IPRST0_CRPTRST_Msk;
+    SYS->IPRST0 &= ~SYS_IPRST0_CRPTRST_Msk;
+    
+    
     CRPT->HMAC_CTL = (SHA_MODE_SHA256 << CRPT_HMAC_CTL_OPMODE_Pos) | CRPT_HMAC_CTL_INSWAP_Msk | CRPT_HMAC_CTL_OUTSWAP_Msk;
     CRPT->HMAC_DMACNT = 64;
     CRPT->HMAC_CTL |= CRPT_HMAC_CTL_START_Msk;
@@ -320,6 +326,10 @@ void Cal_SHA256_SD(char *filename, uint32_t au32Hash[8])
         /* Need to decode chunk by chunk. */
         u32DmaOpt = 0;
     }
+    
+    /* Bytes in buffer */
+    u32BufSize = 0;
+    
     while(bytes > 0)
     {
         if(u32BufSize == 0)
@@ -497,7 +507,7 @@ int32_t FwUpdate(char *fname, char *finfo, int32_t NS)
     
     // Calculate firmware hash
     Cal_SHA256_SD(fname, hash);
-
+    
     SwapCpy((uint8_t *)&au32Pk1[0], (uint8_t *)&fwinfo.pubkey.au32Key0[0], sizeof(au32Pk1));
     SwapCpy((uint8_t *)&au32Pk2[0], (uint8_t *)&fwinfo.pubkey.au32Key1[0], sizeof(au32Pk2));
     
