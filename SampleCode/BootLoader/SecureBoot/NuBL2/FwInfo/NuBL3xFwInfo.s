@@ -10,12 +10,12 @@
     ALIGN   4
         
 g_NuBL32InfoStart
-    INCBIN ..\keil\tfm_s_info.bin
+    INCBIN ..\keil\tfm_s_i.bin
 g_NuBL32InfoEnd
 
 
 g_NuBL33InfoStart
-    INCBIN ..\keil\tfm_ns_info.bin
+    INCBIN ..\keil\tfm_ns_i.bin
 g_NuBL33InfoEnd
 
     END
