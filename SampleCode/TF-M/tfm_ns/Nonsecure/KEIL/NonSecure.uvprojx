@@ -440,30 +440,6 @@
             <File>
               <FileName>s_veneers.o</FileName>
               <FileType>3</FileType>
-              <FilePath>..\..\..\..\..\..\trusted-firmware-m\build\app\s_veneers.o</FilePath>
-              <FileOption>
-                <CommonProperty>
-                  <UseCPPCompiler>2</UseCPPCompiler>
-                  <RVCTCodeConst>0</RVCTCodeConst>
-                  <RVCTZI>0</RVCTZI>
-                  <RVCTOtherData>0</RVCTOtherData>
-                  <ModuleSelection>0</ModuleSelection>
-                  <IncludeInBuild>0</IncludeInBuild>
-                  <AlwaysBuild>2</AlwaysBuild>
-                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
-                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
-                  <PublicsOnly>2</PublicsOnly>
-                  <StopOnExitCode>11</StopOnExitCode>
-                  <CustomArgument></CustomArgument>
-                  <IncludeLibraryModules></IncludeLibraryModules>
-                  <ComprImg>1</ComprImg>
-                </CommonProperty>
-                <FileArmAds/>
-              </FileOption>
-            </File>
-            <File>
-              <FileName>s_veneers.o</FileName>
-              <FileType>3</FileType>
               <FilePath>..\..\..\..\..\..\trusted-firmware-m\build\secure_fw\s_veneers.o</FilePath>
             </File>
             <File>
