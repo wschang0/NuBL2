@@ -524,9 +524,10 @@ int32_t FwUpdate(char *fname, char *finfo, int32_t NS)
         //-------------------------------------------------------------        
         // firmware udpate
         
-        // Check Secure Count
+        // Check Secure Count. we only compare major version number 8-bit major, 8-bit minor, 16-bit reversion
+        // We allow firmware update when secure counter is the same.
         u32SecureCnt = M32((uint32_t)&g_NuBL32InfoStart+0x5c);
-        if(fwinfo.mData.au32ExtInfo[1] < u32SecureCnt)
+        if((fwinfo.mData.au32ExtInfo[1] & 0xfful) < (u32SecureCnt && 0xff))
         {
             printf("Secure count check ............ FAILED!\n");
             return -1;
