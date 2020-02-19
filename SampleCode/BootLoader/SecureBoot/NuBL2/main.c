@@ -24,6 +24,7 @@ extern uint32_t *g_NuBL33InfoEnd;
 
 extern const uint32_t g_InitialFWinfo[]; // A global variable to store NuBL2 FWINFO address, declared in FwInfo.c
 
+extern int32_t UpdateBootStatus(void);
 
 /*---------------------------------------------------------------------------------------------------------*/
 /*  Check Booting status and show F/W info data                                                            */
@@ -344,6 +345,8 @@ int main(void)
 #endif    
 
 
+    UpdateBootStatus();
+    
     SCB->VTOR = u32NuBL32Base;
     func = (void(*)(void))M32(u32NuBL32Base + 4);
     __set_MSP(M32(u32NuBL32Base));
