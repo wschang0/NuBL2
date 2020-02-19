@@ -314,11 +314,11 @@ int32_t VerifyNuBL3x(FW_INFO_T *pFwInfo, uint32_t au32Pk1[8], uint32_t au32Pk2[8
         printf("\n\tVerify F/W hash integrity FAIL.\n");
         printf("Start:0x%08x  size:0x%x\n", u32Start, u32Size);
         printf("Start:0x%08x  size:0x%x\n", pFwInfo->mData.au32FwRegion[1].u32Start, pFwInfo->mData.au32FwRegion[1].u32Size);
-        printf("Hash:\n  ");
+        printf("Hash:\n  Flash: ");
         p8 = (uint8_t *)&au32Hash[0];
         for(i = 0; i < 32; i++)
             printf("%02x", p8[i]);
-        printf("\n  ");
+        printf("\n  FIB  : ");
         p8 = (uint8_t *)&pFwInfo->au32FwHash[0];
         for(i = 0; i < 32; i++)
             printf("%02x", p8[i]);
