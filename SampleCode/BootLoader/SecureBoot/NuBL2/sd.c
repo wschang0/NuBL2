@@ -24,6 +24,7 @@ uint32_t g_au32Key[8] = {0x45EBFB9B,0xFE1BBE9C,0xE31F9F20,0x63BAAC9D,0xB6D75916,
 //CF177955792C5D97AF0B7E6FA5F37766
 uint32_t g_au32IV[4] ={0xCF177955,0x792C5D97,0xAF0B7E6F,0xA5F37766};
 
+extern const uint32_t g_InitialFWinfo[]; // A global variable to store NuBL2 FWINFO address, declared in FwInfo.c
 
 extern uint32_t *g_NuBL32InfoStart;
 extern uint32_t *g_NuBL33InfoStart;
@@ -508,8 +509,13 @@ int32_t FwUpdate(char *fname, char *finfo, int32_t NS)
     // Calculate firmware hash
     Cal_SHA256_SD(fname, hash);
     
-    SwapCpy((uint8_t *)&au32Pk1[0], (uint8_t *)&fwinfo.pubkey.au32Key0[0], sizeof(au32Pk1));
-    SwapCpy((uint8_t *)&au32Pk2[0], (uint8_t *)&fwinfo.pubkey.au32Key1[0], sizeof(au32Pk2));
+    /* Use the key in firmware information block */
+    //SwapCpy((uint8_t *)&au32Pk1[0], (uint8_t *)&fwinfo.pubkey.au32Key0[0], sizeof(au32Pk1));
+    //SwapCpy((uint8_t *)&au32Pk2[0], (uint8_t *)&fwinfo.pubkey.au32Key1[0], sizeof(au32Pk2));
+    
+    /* Use the key of NuBL2. It means NuBL2, SPE and NSPE use the same key */
+    SwapCpy((uint8_t *)&au32Pk1[0], (uint8_t *)g_InitialFWinfo, sizeof(au32Pk1));
+    SwapCpy((uint8_t *)&au32Pk2[0], (uint8_t *)g_InitialFWinfo + 32, sizeof(au32Pk2));
     
     // verify the signature
     if(VerifyNuBL3x(&fwinfo, au32Pk1, au32Pk2, hash) < 0)
