@@ -34,7 +34,8 @@ boot_add_uint16_overflow_check(uint16_t a, uint16_t b)
     return (a > UINT16_MAX - b);
 }
     
-    
+extern void Cal_SHA256_Flash(uint32_t u32Addr, uint32_t u32Bytes, uint32_t *pu32Digest);    
+
 //---------------------------------------------------------------------------
 
 
@@ -99,6 +100,8 @@ boot_save_sw_measurements(uint8_t sw_module,
     uint16_t ias_minor;
     enum shared_memory_err_t res2;
     char measure_type[] = "SHA256";
+    uint32_t u32Addr;
+    uint32_t u32Hash[32];
     
 #if 1
     
@@ -131,6 +134,33 @@ boot_save_sw_measurements(uint8_t sw_module,
     if (res2) {
         return BOOT_STATUS_ERROR;
     }
+    
+    
+    
+    /* Calculate public key hash from firmware information block */
+    if(sw_module == SW_SPE)
+    {
+        u32Addr = 0x7800;
+    }
+    else if(sw_module == SW_NSPE)
+    {
+        u32Addr = 0x7800+0xc0;
+    }
+    Cal_SHA256_Flash(u32Addr, 64, u32Hash);
+    
+    
+    /* Add the hash of the public key to the shared data area */
+    ias_minor = SET_IAS_MINOR(sw_module, SW_SIGNER_ID);
+    res2 = boot_add_data_to_shared_area(TLV_MAJOR_IAS,
+                                        ias_minor,
+                                        SHA256_HASH_SIZE,
+                                        (uint8_t *)u32Hash);
+    if (res2) {
+        return BOOT_STATUS_ERROR;
+    }
+    
+    
+    
 
 #else
 
