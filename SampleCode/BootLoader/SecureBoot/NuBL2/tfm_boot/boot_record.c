@@ -109,10 +109,19 @@ boot_save_sw_measurements(uint8_t sw_module,
     if(sw_module == SW_SPE)
     {
         memcpy(buf, (void *)0x7860, 32); 
+        u32Addr = 0x7800;
+        
     }
     else if(sw_module == SW_NSPE)
     {
         memcpy(buf, (void *)0x7860+0xc0, 32);
+        u32Addr = 0x7800+0xc0;
+    }
+    else if(sw_module == SW_BL2)
+    {
+        memcpy(buf, (void *)0x7060, 32);
+        u32Addr = 0x7000;
+
     }
     
     /* Add the image's hash value to the shared data area */
@@ -135,17 +144,7 @@ boot_save_sw_measurements(uint8_t sw_module,
         return BOOT_STATUS_ERROR;
     }
     
-    
-    
     /* Calculate public key hash from firmware information block */
-    if(sw_module == SW_SPE)
-    {
-        u32Addr = 0x7800;
-    }
-    else if(sw_module == SW_NSPE)
-    {
-        u32Addr = 0x7800+0xc0;
-    }
     Cal_SHA256_Flash(u32Addr, 64, u32Hash);
     
     
@@ -296,6 +295,7 @@ boot_save_sw_type(uint8_t sw_module)
     static const char sw_comp_s[] = "SPE";
     static const char sw_comp_ns[] = "NSPE";
     static const char sw_comp_ns_s[] = "NSPE_SPE";
+    static const char sw_comp_bl[] = "BL";
 
     switch (sw_module) {
     case SW_SPE:
@@ -306,6 +306,9 @@ boot_save_sw_type(uint8_t sw_module)
         break;
     case SW_S_NS:
         sw_type = sw_comp_ns_s;
+        break;
+    case SW_BL2:
+        sw_type = sw_comp_bl;
         break;
     default:
         return BOOT_STATUS_ERROR;
@@ -361,6 +364,10 @@ boot_save_sw_version(uint8_t sw_module,
     else if(sw_module == SW_NSPE)
     {
         memcpy(&ver, (void *)0x785c+0xc0, 4);
+    }
+    else if(sw_module == SW_BL2)
+    {
+        memcpy(&ver, (void *)0x705c, 4);
     }
     else
     {
