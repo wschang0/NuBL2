@@ -19,16 +19,40 @@
     uint32_t _pad1;
 #endif
 
-struct image_header g_imageHeader = {
+
+struct image_header g_imageHeader_bl2 = {
+    IMAGE_TLV_INFO_MAGIC,
+    0x0,
+    IMAGE_HEADER_SIZE,
+    0,
+    0x8000,
+    0,
+    {0,0,0,0},
+    0
+};
+
+struct image_header g_imageHeader_spe = {
     IMAGE_TLV_INFO_MAGIC,
     0x8000,
     IMAGE_HEADER_SIZE,
     0,
     0x2c800,
-    IMAGE_F_RAM_LOAD,
+    0,
     {0,0,0,0},
     0
 };
+
+struct image_header g_imageHeader_nspe = {
+    IMAGE_TLV_INFO_MAGIC,
+    0x10040000,
+    IMAGE_HEADER_SIZE,
+    0,
+    0x40000,
+    0,
+    {0,0,0,0},
+    0
+};
+
 
 #if 0
 
@@ -57,8 +81,16 @@ struct image_header g_imageHeader = {
 
 #endif
 
-struct flash_area g_SPEArea = {
+struct flash_area g_BL2Area = {
     0,
+    0,
+    0,
+    0x0000,
+    0x8000,
+};
+
+struct flash_area g_SPEArea = {
+    1,
     0,
     0,
     0x8000,
@@ -66,7 +98,7 @@ struct flash_area g_SPEArea = {
 };
 
 struct flash_area g_NSPEArea = {
-    0,
+    2,
     0,
     0,
     0x10040000,
@@ -79,8 +111,19 @@ int32_t UpdateBootStatus(void)
     enum boot_status_err_t rc;
     
     /* Save boot status to shared memory area */
+    rc = boot_save_boot_status(SW_BL2,
+                               &g_imageHeader_bl2,
+                               &g_BL2Area
+                              );
+    if(rc)
+    {
+        printf("Failed to add BL2 data to shared area");
+        return -1;
+    }
+    
+    /* Save boot status to shared memory area */
     rc = boot_save_boot_status(SW_SPE,
-                               &g_imageHeader,
+                               &g_imageHeader_spe,
                                &g_SPEArea
                               );
     if(rc)
@@ -90,7 +133,7 @@ int32_t UpdateBootStatus(void)
     }
     
     rc = boot_save_boot_status(SW_NSPE,
-                               &g_imageHeader,
+                               &g_imageHeader_nspe,
                                &g_NSPEArea
                               );
     if(rc)
@@ -98,6 +141,8 @@ int32_t UpdateBootStatus(void)
         printf("Failed to add NSPE data to shared area");
         return -1;
     }
+    
+ 
     
     
     return 0;
