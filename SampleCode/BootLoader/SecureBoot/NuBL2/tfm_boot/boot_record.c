@@ -128,7 +128,7 @@ boot_save_sw_measurements(uint8_t sw_module,
     ias_minor = SET_IAS_MINOR(sw_module, SW_MEASURE_VALUE);
     res2 = boot_add_data_to_shared_area(TLV_MAJOR_IAS,
                                         ias_minor,
-                                        IMAGE_TLV_SHA256,
+                                        SHA256_HASH_SIZE,
                                         buf);
     if (res2) {
         return BOOT_STATUS_ERROR;
